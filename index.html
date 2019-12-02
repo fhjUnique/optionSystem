@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>选择困难户系统</title>
+    <style>
+        #title{
+			margin-left: 10%;
+			line-height: 2;
+        }
+
+        #content{
+            width: 80%;
+			height: 350px;
+			background: #f0e8e8;
+			margin: 20px auto;
+			text-align: center;
+			position: relative;
+			line-height: 300px;
+			color: #414d5a;
+			font-size: 30px;
+        }   
+
+        #start_bt{
+            background: #ccc;
+            width: 180px;
+            height: 80px;
+            font-size: 30px;
+            color: #f40;
+            border-radius: 12px;
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            margin-left: -90px;
+            
+        }
+
+
+		#hint{
+			text-align: center;
+			height: 20px;
+			margin-left: -10%;
+		}
+
+		#option_name{
+			border: groove;
+		}
+
+		#query_all{
+			border-bottom: ridge;
+		}
+
+		#query_all_div_pirent{
+			width: 80%;
+			height: 500px;
+			background-color: black;
+			position: fixed;
+			z-index: 2;
+			opacity: 0.8;
+			visibility: hidden;
+			overflow: scroll;
+		}
+
+		#query_all_null{
+			color: white;
+			margin-left: 35%;
+			margin-top: 100px;
+			position: fixed;
+			visibility: hidden;
+			display: block;
+		}
+
+		#del_all_option{
+			margin: 10px;
+			background: #5454de;
+			color: white;
+			border-style: none;
+			float: right;
+		}
+
+		.del_one_option{
+			float:right;
+			color: white;
+			margin-right: 10px;
+			background: #5454de;
+			border-style: none;
+		}
+
+		#query_all_list{
+			margin-top: 70px;
+			line-height: 30px;
+		}
+
+		#menu_li{
+			width: 100px;
+			height: 23px;
+			margin-left: -5px;
+			background: white;
+		}
+
+		#menu_name{
+			margin: 20px 10px 10px 30px;
+			color: white;
+			border-style: none;
+			float: left;
+			font-size: 18px;
+		}
+
+		li{
+			color: white;
+			font-size: 16px;
+		}
+
+    
+    </style>
+</head>
+<body width="100%">
+	<div style="text-align: center;font-size: 30px;color: #52a29a;margin-bottom: 10px;">选择困难户专用</div>
+	<div id="title">
+		<div>
+			<span id="query_all">查看选项</span>
+			<div id="query_all_div_pirent">
+				<span id="menu_name"></span>
+				<button id="del_all_option">删除菜单</button>
+				<ul id="query_all_list">
+				</ul>
+				<span id="query_all_null">无数据</span>
+			</div>
+		</div>
+		<div>
+			<span>选择菜单：</span>
+			<select id="menu_li" onchange="menu_update()"> 
+			</select> 
+			<button id="add_menu_bt">新增菜单</button>
+			
+		</div>
+		<div>
+			添加选项：<input id="option_name">
+			<button id="add_option_bt">添加</button>
+		</div>
+		<div id="hint"></div>
+	</div>
+    <div id="content">
+        <span id="option_show">
+            点击开始
+        </span>
+        <button id="start_bt">
+            start
+        </button>
+    </div>
+
+    <script>
+        var menu = [];
+        var $start_bt = document.getElementById('start_bt');
+        var $content = document.getElementById('content');
+        var $option_show = document.getElementById('option_show');
+		var $option_name = document.getElementById('option_name');
+		var $add_option_bt = document.getElementById('add_option_bt');
+		var $hint = document.getElementById('hint');
+		var $query_all = document.getElementById('query_all');
+		var $query_all_list = document.getElementById('query_all_list');
+		var $query_all_div_pirent = document.getElementById('query_all_div_pirent');
+		var $query_all_null = document.getElementById('query_all_null');
+		var $del_all_option = document.getElementById('del_all_option');
+		var $del_one_option = document.getElementsByClassName('del_one_option');
+		var $menu_li = document.getElementById('menu_li');
+		var $add_menu_bt = document.getElementById('add_menu_bt');
+		var $menu_name = document.getElementById('menu_name');
+		var pulldown = true;
+		var timer;
+		var timer1;
+		// 初始化内容
+		function init() { 
+			var menu=[];
+			for(var i=0;i<localStorage.length;i++){
+				if(localStorage.key(i).slice(0,4) == "menu"){
+					menu.push(localStorage.key(i).slice(4));
+				}else{
+					localStorage.removeItem(localStorage.key(i));
+				}
+			}
+			menu.sort();
+			menu.reverse();
+			for(var i=0;i<menu.length;i++){
+				var menu_value = JSON.parse(localStorage.getItem("menu"+menu[i]));
+				$menu_li.add(new Option(menu_value[0],"menu"+menu[i]));
+			}
+		}; 
+		init(); 
+		
+		//查询选项列表
+		$query_all.onclick = function(){
+			if(pulldown){
+				show_query_option();
+			}else{
+				hide_query_option();
+			}
+		}
+		//展示选项列表
+		function show_query_option(){
+			$query_all_div_pirent.style.visibility = "visible";
+			$query_all_div_pirent.style.display = "";
+			var list="";
+			if(localStorage.length < 1){
+				$query_all_null.style.visibility = "visible";
+				$del_all_option.style.display = "none";
+				$menu_name.style.display = "none";
+			}else{
+				var index = $menu_li.selectedIndex;
+				var value = $menu_li.options[index].value;
+				var arr1 = JSON.parse(localStorage.getItem(value));
+				
+				$menu_name.innerHTML = arr1[0];
+				if(arr1.length < 2){
+					$query_all_null.style.visibility = "visible";
+					list = "";
+				}else{
+					for(var i=1;i<arr1.length;i++){
+						list += "<li>"+arr1[i]+"<button onclick='del_this_option(this)' class='del_one_option'>"+"删除"+"</button>"+"</li>";
+					}
+				}
+				$query_all_list.innerHTML=list;
+			}
+			pulldown = false;
+		}
+		//隐藏选项列表
+		function hide_query_option(){
+			$query_all_null.style.visibility = "hidden";
+			$query_all_div_pirent.style.display = "none";
+			pulldown = true;
+		}
+		//点击选项列表区域外隐藏选项列表
+		document.addEventListener("click",function(event){
+			if(event.target.id != "query_all" && $query_all_div_pirent.style.visibility == "visible"){
+				hide_query_option();
+			}
+		});
+		//点击选项列表区域不隐藏选项列表
+		$query_all_div_pirent.addEventListener("click",function(event){
+			//event=event||window.event;
+			event.stopPropagation();
+		});
+		//删除单个的选项
+		function del_this_option(self) {
+			var oUl = document.querySelector("#query_all_list");
+			var oList = oUl.querySelectorAll("li");
+			for(var i=0;i<oList.length;i++){
+				oList[i].index = i + 1;
+				oList[i].onclick = function(){
+					var index = $menu_li.selectedIndex;
+					var value = $menu_li.options[index].value;
+					var arr1 = JSON.parse(localStorage.getItem(value));
+					arr1.splice(this.index,1);
+					localStorage.setItem(value,JSON.stringify(arr1));
+					if(arr1.length<2){
+						//localStorage.removeItem("arr");
+						$query_all_null.style.visibility = "visible";
+						//$option_show.innerHTML = "点击开始";
+					}
+　　　			}
+			}
+			self.parentNode.remove();
+			clearInterval(timer);   
+			clearInterval(timer1);
+			$option_show.innerHTML = "点击开始";
+			$start_bt.innerHTML = 'start';
+			$start_bt.style.display=''; 
+
+		}
+		//删除全部选项
+		$del_all_option.onclick = function(){
+			
+			var index = $menu_li.selectedIndex;
+			var value = $menu_li.options[index].value;
+			var arr1 = JSON.parse(localStorage.getItem(value));
+			if (confirm("确认删除此菜单吗？")) {
+				localStorage.removeItem(value);
+				$query_all_list.innerHTML="";
+				$query_all_null.style.visibility = "visible";
+				$option_show.innerHTML = "点击开始";
+				location.reload();
+			}
+		}
+		//添加菜单
+		$add_menu_bt.onclick = function(){
+			var menu = [];
+			var menu_name = prompt("请输入菜单","").trim();
+			var arr = [];
+			if(menu_name == ""){
+				$hint.innerHTML = "请输入菜单";
+				$hint.style.color = "red";
+				timers(2);
+			}
+			if(menu_name){
+				for(var i = 0;i<localStorage.length;i++){
+					menu.push(localStorage.key(i).slice(4));
+				}
+				arr.push(menu_name);
+				if(localStorage.length == 0){
+					localStorage.setItem("menu"+1,JSON.stringify(arr));
+					$menu_li.add(new Option(menu_name,"menu"+1));
+				}else{
+					var max = Math.max.apply(null,menu);
+					localStorage.setItem("menu"+(max+1),JSON.stringify(arr));
+					$menu_li.add(new Option(menu_name,"menu"+(max+1)));
+				}
+				location.reload();
+			}
+			
+		}
+		//点击添加选项按钮
+		$add_option_bt.onclick = function(){
+			var option_name = $option_name.value.trim();
+			if(localStorage.length==0){
+				$hint.innerHTML = "请添加菜单";
+				$hint.style.color = "red";
+			}else if(option_name == ""){
+				$hint.innerHTML = "请输入选项";
+				$hint.style.color = "red";
+			}else{
+				var index = $menu_li.selectedIndex;
+				var value = $menu_li.options[index].value;
+				var menu = JSON.parse(localStorage.getItem(value));
+				menu.push(option_name);
+				localStorage.setItem(value,JSON.stringify(menu));
+				$hint.innerHTML = "添加成功";
+				$hint.style.color = "#37bf37";
+			}
+			$option_name.value = "";
+			timers(2);
+		}
+		
+		function timers(second){
+			s =second;
+			var t = setInterval(function(){
+				s = s -1;
+				if(s<0){
+					$hint.innerHTML = "";
+					clearInterval(t); 
+				}
+				},1000);
+		}
+		//点击开始
+        $start_bt.onclick = function(){
+			if(localStorage.length == 0){
+				$hint.innerHTML = "请添加菜单";
+				$hint.style.color = "red";
+			}else{
+				var index = $menu_li.selectedIndex;
+				var value = $menu_li.options[index].value;
+				var arr1 = JSON.parse(localStorage.getItem(value));
+				if(arr1.length < 2){
+					$hint.innerHTML = "请添加选项";
+					$hint.style.color = "red";
+				}else if(arr1.length < 3){
+					$hint.innerHTML = "最少添加两个选项";
+					$hint.style.color = "red";
+				}else{
+					start(arr1);
+					$start_bt.innerHTML = 'restart';
+					$start_bt.style.display='none'; 
+				}
+			}
+			timers(2);
+        }
+
+        function start(arr1){
+            timer = setInterval(function(){
+                var num = random(1,arr1.length - 1);
+                $option_show.innerHTML = arr1[num];
+            },50);
+			stop();
+			
+        }
+		function stop(){
+			var s=2;
+			timer1 = setInterval(function(){
+               		s = s -1;
+               		if(s<0){
+   						clearInterval(timer);   
+						clearInterval(timer1);
+						$start_bt.style.display=''; 
+   					}
+            },1000);
+		}
+		//切换菜单后更新页面
+		function menu_update(){
+			clearInterval(timer);   
+			clearInterval(timer1);
+			$option_show.innerHTML = "点击开始";
+			$start_bt.innerHTML = 'start';
+			$start_bt.style.display=''; 
+		}
+        // 随机函数
+        function random(a,b){
+            var randomNum = Math.round(Math.random() * (b - a) + a);
+            return randomNum;
+        }   
+		
+    </script>
+</body>
+</html>
